@@ -124,3 +124,31 @@ When you are ready to move to code, the built-in **Code View** generates the equ
 
 - DOTween은 이 저장소에 `Assets/Plugins/Demigiant/` 아래 **DLL**로 포함되어 있으며 직접 수정하면 안 됩니다. 모듈은 DOTween Utility Panel을 통해 관리하세요.
 - Code View가 생성하는 코드의 타깃은 `GameObject.Find(name)` 으로 참조되므로, 타깃 이름이 유일하도록 하거나 참조를 직접 교체하세요. 이벤트와 "Kill Conflicting"은 생성 코드에 포함되지 않습니다.
+
+---
+---
+
+# Changelog / 변경 이력
+
+Each entry lists changes in **English** and **한국어**. Unreleased items roll into a version on the next release.
+각 항목은 **영어**와 **한국어**로 변경 사항을 적습니다. Unreleased 항목은 다음 릴리스에서 버전으로 묶입니다.
+
+## Unreleased
+
+- **EN:** Add a bilingual README and a Changelog section; document the rule that every commit updates the README.
+- **KO:** 영문/한국어 README와 Changelog 섹션을 추가하고, 매 커밋마다 README를 갱신하는 규칙을 문서화.
+
+## v0.3.0
+
+- **EN:** Per-clip On/Off (`enabled`); a Code View that generates a DOTween C# method reproducing the timeline and copies it to the clipboard; On/Off toggle switches ~10% smaller.
+- **KO:** 클립별 On/Off(`enabled`), 타임라인을 재현하는 DOTween C# 메서드를 생성·복사하는 Code View, 약 10% 작아진 On/Off 토글 스위치.
+
+## v0.2.0
+
+- **EN:** Loop-aware Edit-mode preview (reflects timeline/clip loops); a red playhead indicator shown in Play mode as well; fixed the DOTween "infinite loops inside a Sequence" warning.
+- **KO:** 루프를 반영하는 Edit 모드 프리뷰(타임라인/클립 루프 반영), Play 모드에도 표시되는 빨간 플레이헤드, DOTween "시퀀스 내 무한 루프" 경고 수정.
+
+## v0.1.0
+
+- **EN:** First preview release — the `DoTweenTimeline` component with an Inspector timeline editor, supported tween types, edit-mode preview, and runtime control API.
+- **KO:** 첫 프리릴리스 — 인스펙터 타임라인 에디터, 지원 트윈 타입, Edit 모드 프리뷰, 런타임 제어 API를 갖춘 `DoTweenTimeline` 컴포넌트.
