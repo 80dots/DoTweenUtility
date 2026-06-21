@@ -541,7 +541,8 @@ MonoBehaviour:
   timelineLoops: 1
   timelineLoopType: 0
   clips:
-  - label: Rotation
+  - enabled: 1
+    label: Rotation
     target: {fileID: 1851711516}
     targetComponent: {fileID: 1851711520}
     tweenType: 20

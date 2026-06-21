@@ -83,6 +83,9 @@ namespace DoTweenUtility
         [Serializable]
         public class Clip
         {
+            [Tooltip("Enable/disable this clip. Disabled clips are skipped when the timeline is built/played")]
+            public bool enabled = true;
+
             [Tooltip("Label for identifying this clip in the timeline/Inspector")]
             public string label = "Clip";
 
@@ -284,14 +287,14 @@ namespace DoTweenUtility
             {
                 foreach (var clip in clips)
                 {
-                    if (clip == null || clip.target == null) continue;
+                    if (clip == null || !clip.enabled || clip.target == null) continue;
                     KillConflicting(ConflictKey(clip));
                 }
             }
 
             foreach (var clip in clips)
             {
-                if (clip == null || clip.target == null) continue;
+                if (clip == null || !clip.enabled || clip.target == null) continue;
 
                 Tweener tween = BuildTween(clip);
                 if (tween == null) continue;
