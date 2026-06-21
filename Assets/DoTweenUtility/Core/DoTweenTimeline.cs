@@ -307,7 +307,13 @@ namespace DoTweenUtility
                 else
                     tween.SetEase(clip.ease);
                 if (clip.loops != 1)
-                    tween.SetLoops(clip.loops, clip.loopType);
+                {
+                    // 시퀀스에 중첩된 트윈은 무한 루프(-1)가 허용되지 않는다(DOTween 경고:
+                    // "Infinite loops aren't allowed inside a Sequence ... changed to int.MaxValue").
+                    // 무한이면 직접 int.MaxValue로 클램프해 사실상 무한처럼 돌리되 경고를 막는다.
+                    int clipLoops = clip.loops < 0 ? int.MaxValue : clip.loops;
+                    tween.SetLoops(clipLoops, clip.loopType);
+                }
                 if (clip.relative)
                     tween.SetRelative(true);
                 if (clip.from)

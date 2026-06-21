@@ -48,7 +48,8 @@ namespace DoTweenUtility.Editor
         // 미리보기(Edit 모드)
         bool _previewing;
         bool _previewPlaying;
-        float _previewTime;
+        float _previewTime;     // 현재 루프 사이클 내 위치(Goto 대상 / 플레이헤드 표시)
+        float _previewElapsed;  // 루프 계산용 누적 경과 시간(전체)
         double _lastUpdate;
         List<Action> _restore;
 
@@ -77,6 +78,15 @@ namespace DoTweenUtility.Editor
         void OnDisable()
         {
             if (_previewing) EndPreview();
+        }
+
+        // 프리뷰 재생 중이거나, Play 모드에서 시퀀스가 도는 동안에는
+        // 플레이헤드(빨간 인디케이터)가 매 프레임 갱신되도록 상시 리페인트한다.
+        public override bool RequiresConstantRepaint()
+        {
+            if (_previewing && _previewPlaying) return true;
+            if (Application.isPlaying && _t != null && _t.IsPlaying) return true;
+            return false;
         }
 
         public override void OnInspectorGUI()
@@ -233,8 +243,22 @@ namespace DoTweenUtility.Editor
 
         void DrawPlayhead(float bodyHeight)
         {
-            if (!_previewing) return;
-            float x = _previewTime * _pps - _scrollX;
+            // 표시 위치(초): Edit 모드 프리뷰는 _previewTime, Play 모드는 런타임 시퀀스의
+            // 현재 루프 사이클 내 경과 시간을 사용한다.
+            float t;
+            if (_previewing)
+            {
+                t = _previewTime;
+            }
+            else if (Application.isPlaying)
+            {
+                var seq = _t.Sequence;
+                if (seq == null || !seq.IsActive()) return;
+                t = seq.Elapsed(false); // 현재 사이클 내 경과(초) — 타임라인의 1패스 좌표와 매핑
+            }
+            else return;
+
+            float x = t * _pps - _scrollX;
             EditorGUI.DrawRect(new Rect(x, 0, 1.5f, bodyHeight), new Color(1f, 0.3f, 0.2f, 0.9f));
         }
 
@@ -739,9 +763,17 @@ namespace DoTweenUtility.Editor
                     if (GUILayout.Button(_previewPlaying ? "⏸ Pause" : "▶ Play"))
                     {
                         _previewPlaying = !_previewPlaying;
+                        if (_previewPlaying)
+                        {
+                            // 끝까지 재생된 상태에서 다시 누르면 처음부터, 아니면 현재 위치에서 이어재생.
+                            float cycle = PreviewCycle();
+                            int loops = _t.timelineLoops;
+                            bool atEnd = loops >= 0 && _previewElapsed >= cycle * Mathf.Max(1, loops) - 0.0001f;
+                            _previewElapsed = atEnd ? 0f : _previewTime;
+                        }
                         _lastUpdate = EditorApplication.timeSinceStartup;
                     }
-                    if (GUILayout.Button("⟲ To Start")) { _previewTime = 0f; ApplyPreview(); }
+                    if (GUILayout.Button("⟲ To Start")) { _previewTime = 0f; _previewElapsed = 0f; ApplyPreview(); }
                     if (GUILayout.Button("Stop Preview")) EndPreview();
                 }
             }
@@ -749,10 +781,11 @@ namespace DoTweenUtility.Editor
             if (_previewing)
             {
                 EditorGUI.BeginChangeCheck();
-                float t = EditorGUILayout.Slider("Time", _previewTime, 0f, Mathf.Max(0.01f, _t.TotalDuration));
+                float t = EditorGUILayout.Slider("Time", _previewTime, 0f, Mathf.Max(0.01f, PreviewCycle()));
                 if (EditorGUI.EndChangeCheck())
                 {
                     _previewTime = t;
+                    _previewElapsed = t;
                     _previewPlaying = false;
                     ApplyPreview();
                 }
@@ -771,6 +804,7 @@ namespace DoTweenUtility.Editor
             _previewing = true;
             _previewPlaying = false;
             _previewTime = 0f;
+            _previewElapsed = 0f;
             _lastUpdate = EditorApplication.timeSinceStartup;
             EditorApplication.update += OnEditorUpdate;
             ApplyPreview();
@@ -793,19 +827,50 @@ namespace DoTweenUtility.Editor
             float dt = (float)(now - _lastUpdate);
             _lastUpdate = now;
 
-            if (_previewPlaying)
+            if (!_previewPlaying) return;
+
+            // 한 루프 사이클 길이(클립별 루프는 시퀀스 사이클에 이미 포함됨).
+            float cycle = PreviewCycle();
+            _previewElapsed += dt;
+
+            // 타임라인 전체 루프(timelineLoops/timelineLoopType)를 프리뷰에 반영.
+            int loops = _t.timelineLoops;
+            bool infinite = loops < 0;
+            float totalFinite = infinite ? Mathf.Infinity : cycle * Mathf.Max(1, loops);
+
+            if (!infinite && _previewElapsed >= totalFinite)
             {
-                float total = Mathf.Max(0.01f, _t.TotalDuration);
-                _previewTime += dt;
-                if (_previewTime >= total)
-                {
-                    _previewTime = total;
-                    _previewPlaying = false;
-                }
-                ApplyPreview();
-                Repaint();
-                SceneView.RepaintAll();
+                // 마지막 사이클의 끝 위치로 고정하고 정지(Yoyo면 짝수 루프 후 시작점으로 끝남).
+                _previewElapsed = totalFinite;
+                int lastIdx = Mathf.Max(0, loops - 1);
+                bool lastReversed = _t.timelineLoopType == LoopType.Yoyo && (lastIdx % 2 == 1);
+                _previewTime = lastReversed ? 0f : cycle;
+                _previewPlaying = false;
             }
+            else
+            {
+                int completed = (int)(_previewElapsed / cycle);
+                float frac = _previewElapsed - completed * cycle;
+                bool reversed = _t.timelineLoopType == LoopType.Yoyo && (completed % 2 == 1);
+                _previewTime = reversed ? (cycle - frac) : frac;
+            }
+
+            ApplyPreview();
+            Repaint();
+            SceneView.RepaintAll();
+        }
+
+        // 프리뷰용 한 루프 사이클 길이(초). 시퀀스의 단일 사이클 길이(클립 루프 포함)를 쓰되,
+        // 무한 클립 루프 등으로 비정상(0/무한)이면 에디터 표시용 TotalDuration으로 폴백한다.
+        float PreviewCycle()
+        {
+            var seq = _t.Sequence;
+            if (seq != null && seq.IsActive())
+            {
+                float d = seq.Duration(false);
+                if (d > 0.0001f && !float.IsInfinity(d)) return d;
+            }
+            return Mathf.Max(0.01f, _t.TotalDuration);
         }
 
         void ApplyPreview()
