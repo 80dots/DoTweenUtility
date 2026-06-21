@@ -108,3 +108,6 @@ InitTestScene*.unity*
 
 # Claude Code project instructions (local only)
 CLAUDE.md
+
+# JetBrains Rider / IntelliJ project files
+.idea/
