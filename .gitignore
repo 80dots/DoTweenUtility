@@ -111,3 +111,10 @@ CLAUDE.md
 
 # JetBrains Rider / IntelliJ project files
 .idea/
+
+# Unity AssetPackage export output
+/Export/
+*.unitypackage
+
+# Local helper scripts
+*.sh
