@@ -537,9 +537,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DoTweenUtility.DoTweenTimeline
   autoPlay: 2
   ignoreTimeScale: 0
-  killConflictingOnPlay: 0
-  timelineLoops: 1
-  timelineLoopType: 0
+  killConflictingOnPlay: 1
+  timelineLoops: -1
+  timelineLoopType: 1
   clips:
   - enabled: 1
     label: Rotation
@@ -585,7 +585,7 @@ MonoBehaviour:
     fromVectorValue: {x: 0, y: 0, z: 0}
     fromFloatValue: 0
     fromColorValue: {r: 1, g: 1, b: 1, a: 1}
-    loops: -1
+    loops: 1
     loopType: 0
     onStart:
       m_PersistentCalls:
@@ -596,7 +596,8 @@ MonoBehaviour:
     onFinish:
       m_PersistentCalls:
         m_Calls: []
-  - label: Clip 1
+  - enabled: 1
+    label: Clip 1
     target: {fileID: 1851711516}
     targetComponent: {fileID: 1851711520}
     tweenType: 20
@@ -639,7 +640,7 @@ MonoBehaviour:
     fromVectorValue: {x: 0, y: 0, z: 0}
     fromFloatValue: 0
     fromColorValue: {r: 1, g: 1, b: 1, a: 1}
-    loops: -1
+    loops: 1
     loopType: 0
     onStart:
       m_PersistentCalls:
@@ -650,6 +651,62 @@ MonoBehaviour:
     onFinish:
       m_PersistentCalls:
         m_Calls: []
+  - enabled: 1
+    label: "Clip 1 (\uBCF5\uC81C)"
+    target: {fileID: 1851711516}
+    targetComponent: {fileID: 1851711520}
+    tweenType: 20
+    startTime: 4
+    duration: 2
+    vectorValue: {x: 0, y: 0, z: 360}
+    floatValue: 0
+    colorValue: {r: 1, g: 1, b: 1, a: 1}
+    ease: 6
+    useCurveEase: 0
+    easeCurve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    from: 0
+    relative: 0
+    snapping: 0
+    rotateMode: 1
+    overrideStart: 0
+    fromVectorValue: {x: 0, y: 0, z: 0}
+    fromFloatValue: 0
+    fromColorValue: {r: 1, g: 1, b: 1, a: 1}
+    loops: 1
+    loopType: 0
+    onStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onUpdate:
+      m_PersistentCalls:
+        m_Calls: []
+    onFinish:
+      m_PersistentCalls:
+        m_Calls: []
+  markers: []
   onStart:
     m_PersistentCalls:
       m_Calls: []
@@ -657,6 +714,9 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   onFinish:
+    m_PersistentCalls:
+      m_Calls: []
+  onMarker:
     m_PersistentCalls:
       m_Calls: []
 --- !u!1660057539 &9223372036854775807
