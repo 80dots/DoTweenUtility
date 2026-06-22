@@ -34,14 +34,14 @@ namespace DoTweenUtility
             {
                 foreach (var clip in clips)
                 {
-                    if (clip == null || !clip.enabled || clip.target == null) continue;
+                    if (!IsBuildable(clip)) continue;
                     KillConflicting(ConflictKey(clip));
                 }
             }
 
             foreach (var clip in clips)
             {
-                if (clip == null || !clip.enabled || clip.target == null) continue;
+                if (!IsBuildable(clip)) continue;
 
                 Tweener tween = BuildTween(clip);
                 if (tween == null) continue;
@@ -64,14 +64,19 @@ namespace DoTweenUtility
                     int clipLoops = clip.loops < 0 ? int.MaxValue : clip.loops;
                     tween.SetLoops(clipLoops, clip.loopType);
                 }
-                if (clip.relative)
-                    tween.SetRelative(true);
-                if (clip.from)
-                    tween.From();
+                // Virtual은 From/To를 직접 지정하므로 relative/from/overrideStart를 적용하지 않는다
+                // (기존 클립을 Virtual로 바꿔 잔여 값이 남아도 무시).
+                if (!IsVirtual(clip.tweenType))
+                {
+                    if (clip.relative)
+                        tween.SetRelative(true);
+                    if (clip.from)
+                        tween.From();
 
-                // 시작값 강제: DOTween이 startup 시 캡처하는 시작값을 지정값으로 덮어쓴다.
-                if (clip.overrideStart)
-                    tween.ChangeStartValue(GetStartValueBoxed(clip));
+                    // 시작값 강제: DOTween이 startup 시 캡처하는 시작값을 지정값으로 덮어쓴다.
+                    if (clip.overrideStart)
+                        tween.ChangeStartValue(GetStartValueBoxed(clip));
+                }
 
                 // 클립별 이벤트 (지역 변수로 캡처해 클로저가 올바른 clip을 참조)
                 Clip captured = clip;
@@ -103,11 +108,33 @@ namespace DoTweenUtility
             _sequence.Pause(); // 빌드만 하고 재생은 Play()에서
         }
 
+        // 빌드 대상인지: 활성 클립이어야 하고, Virtual이 아니면 타깃이 있어야 한다.
+        static bool IsBuildable(Clip clip)
+        {
+            if (clip == null || !clip.enabled) return false;
+            if (IsVirtual(clip.tweenType)) return true; // Virtual은 타깃 불필요
+            return clip.target != null;
+        }
+
         /// <summary>단일 클립을 DOTween 트윈으로 변환. 지원 안 되면 null + 경고.</summary>
         Tweener BuildTween(Clip c)
         {
-            Transform tr = c.target.transform;
             float d = Mathf.Max(0f, c.duration);
+
+            // ── Virtual (타깃 없음): From → To 를 이징해 매 프레임 콜백으로 전달 ──
+            switch (c.tweenType)
+            {
+                case TweenType.VirtualFloat:
+                    return DOVirtual.Float(c.fromFloatValue, c.floatValue, d, v => c.onVirtualUpdate?.Invoke(v));
+                case TweenType.VirtualInt:
+                    return DOVirtual.Int(Mathf.RoundToInt(c.fromFloatValue), Mathf.RoundToInt(c.floatValue), d, v => c.onVirtualUpdateInt?.Invoke(v));
+                case TweenType.VirtualVector3:
+                    return DOVirtual.Vector3(c.fromVectorValue, c.vectorValue, d, v => c.onVirtualUpdateVec3?.Invoke(v));
+                case TweenType.VirtualColor:
+                    return DOVirtual.Color(c.fromColorValue, c.colorValue, d, v => c.onVirtualUpdateColor?.Invoke(v));
+            }
+
+            Transform tr = c.target.transform;
 
             switch (c.tweenType)
             {
@@ -166,6 +193,10 @@ namespace DoTweenUtility
         // 외부의 무관한 트윈에는 영향을 주지 않는다.
         static string ConflictKey(Clip c)
         {
+            // Virtual은 타깃/컴포넌트가 없어 충돌 개념이 없으므로 클립별 고유 키를 쓴다(상호 Kill 방지).
+            if (IsVirtual(c.tweenType))
+                return "DTT:virtual:" + c.GetHashCode();
+
             // 실제로 구동되는 컴포넌트(targetComponent, 없으면 Transform)의 인스턴스 ID 사용
             Component comp = c.targetComponent != null ? c.targetComponent
                            : (c.target != null ? c.target.transform : null);

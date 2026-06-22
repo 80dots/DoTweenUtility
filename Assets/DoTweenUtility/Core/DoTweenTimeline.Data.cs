@@ -57,7 +57,17 @@ namespace DoTweenUtility
             GraphicFade = 52,
             SpriteColor = 53,
             SpriteFade = 54,
+            // Virtual (no target) — DOVirtual.*: 이징된 값을 매 프레임 콜백으로 전달
+            VirtualFloat = 60,
+            VirtualInt = 61,
+            VirtualVector3 = 62,
+            VirtualColor = 63,
         }
+
+        /// <summary>해당 TweenType이 Virtual(DOVirtual.*, 타깃 없음) 계열인지.</summary>
+        public static bool IsVirtual(TweenType t) =>
+            t == TweenType.VirtualFloat || t == TweenType.VirtualInt
+            || t == TweenType.VirtualVector3 || t == TweenType.VirtualColor;
 
         // ──────────────────────────────────────────────────────────────────
         // 클립 데이터
@@ -136,6 +146,16 @@ namespace DoTweenUtility
             public UnityEvent onUpdate;
             [Tooltip("Invoked when this clip's tween completes")]
             public UnityEvent onFinish;
+
+            [Header("Virtual (DOVirtual.*) callbacks — only the one matching Value Type is used")]
+            [Tooltip("VirtualFloat: invoked every frame with the eased float value (From → To)")]
+            public FloatEvent onVirtualUpdate;
+            [Tooltip("VirtualInt: invoked every frame with the eased int value")]
+            public IntEvent onVirtualUpdateInt;
+            [Tooltip("VirtualVector3: invoked every frame with the eased Vector3 value")]
+            public Vector3Event onVirtualUpdateVec3;
+            [Tooltip("VirtualColor: invoked every frame with the eased Color value")]
+            public ColorEvent onVirtualUpdateColor;
         }
 
         /// <summary>
@@ -156,5 +176,18 @@ namespace DoTweenUtility
         /// <summary>마커 콜백 형식. 인자는 마커 이름(string).</summary>
         [Serializable]
         public class MarkerEvent : UnityEvent<string> { }
+
+        /// <summary>Virtual 콜백 형식들. 인자는 현재 이징된 값.</summary>
+        [Serializable]
+        public class FloatEvent : UnityEvent<float> { }
+
+        [Serializable]
+        public class IntEvent : UnityEvent<int> { }
+
+        [Serializable]
+        public class Vector3Event : UnityEvent<Vector3> { }
+
+        [Serializable]
+        public class ColorEvent : UnityEvent<Color> { }
     }
 }

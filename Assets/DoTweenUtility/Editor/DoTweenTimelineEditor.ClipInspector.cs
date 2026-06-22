@@ -35,8 +35,60 @@ namespace DoTweenUtility.Editor
                     EditorUtility.SetDirty(_t);
                 }
 
-                // Target → Component → (필터된) Tween Type. 자체 변경 처리/정규화를 한다.
-                DrawTargetAndType(clip);
+                // ── 모드 선택: Object(컴포넌트 트윈) / Virtual(DOVirtual.*, 타깃 없음) ──
+                bool isVirtual = Timeline.IsVirtual(clip.tweenType);
+                int mode = isVirtual ? 1 : 0;
+                int newMode = GUILayout.Toolbar(mode, new[] { "Object Mode", "Virtual Mode" });
+                if (newMode != mode)
+                {
+                    Undo.RecordObject(_t, "Change Clip Mode");
+                    if (newMode == 1)
+                    {
+                        clip.tweenType = Timeline.TweenType.VirtualFloat; // → Virtual(기본 Float)
+                    }
+                    else
+                    {
+                        // → Object: 타깃 보장 + 기본 타입(Move) 복원
+                        if (clip.target == null) clip.target = _t.gameObject;
+                        clip.targetComponent = clip.target != null ? clip.target.transform : null;
+                        clip.tweenType = Timeline.TweenType.Move;
+                    }
+                    EditorUtility.SetDirty(_t);
+                    isVirtual = newMode == 1;
+                }
+
+                EditorGUILayout.Space(2);
+
+                if (isVirtual)
+                {
+                    EditorGUILayout.HelpBox(
+                        "Virtual value tween (DOVirtual.*) — no target. Pick a Value Type, set From/To and an Ease, and wire the matching On Virtual Update callback below.",
+                        MessageType.Info);
+
+                    // 값 타입 선택 → 해당 DOVirtual 변형
+                    var vtTypes = new[]
+                    {
+                        Timeline.TweenType.VirtualFloat, Timeline.TweenType.VirtualInt,
+                        Timeline.TweenType.VirtualVector3, Timeline.TweenType.VirtualColor,
+                    };
+                    var vtNames = new[] { "Float", "Int", "Vector3", "Color" };
+                    int vtIdx = Array.IndexOf(vtTypes, clip.tweenType);
+                    if (vtIdx < 0) vtIdx = 0;
+                    EditorGUI.BeginChangeCheck();
+                    int newVt = EditorGUILayout.Popup("Value Type", vtIdx, vtNames);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        Undo.RecordObject(_t, "Edit Virtual Value Type");
+                        clip.tweenType = vtTypes[newVt];
+                        EditorUtility.SetDirty(_t);
+                    }
+                }
+                else
+                {
+                    // Target → Component → (필터된) Tween Type. 자체 변경 처리/정규화를 한다.
+                    DrawTargetAndType(clip);
+                }
+
                 var tweenType = clip.tweenType;
 
                 EditorGUILayout.Space(2);
@@ -53,62 +105,91 @@ namespace DoTweenUtility.Editor
                 float duration = EditorGUILayout.FloatField("Duration (s)", clip.duration);
 
                 EditorGUILayout.Space(2);
-                // ── 종류별 목표값 ──
+                // ── 목표값 / 시작값 ──
                 Vector3 vec = clip.vectorValue;
                 float fl = clip.floatValue;
                 Color col = clip.colorValue;
-
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    if (UsesVector3(tweenType))
-                        vec = EditorGUILayout.Vector3Field("To", vec);
-                    else if (UsesVector2(tweenType))
-                    {
-                        Vector2 v2 = EditorGUILayout.Vector2Field("To", new Vector2(vec.x, vec.y));
-                        vec = new Vector3(v2.x, v2.y, 0f);
-                    }
-                    else if (UsesColor(tweenType))
-                        col = EditorGUILayout.ColorField("To Color", col);
-                    else // float
-                        fl = EditorGUILayout.FloatField("To", fl);
-
-                    if (GUILayout.Button("Current", GUILayout.Width(60)))
-                    {
-                        CaptureInto(clip, true);
-                        // 캡처 결과가 아래 ChangeCheck 저장 시 stale 로컬로 덮이지 않도록 동기화
-                        vec = clip.vectorValue; fl = clip.floatValue; col = clip.colorValue;
-                    }
-                }
-
-                // ── 시작값 강제(Override Start Value) ──
-                bool overrideStart = AndroidToggle("Override Start Value", clip.overrideStart);
                 Vector3 fromVec = clip.fromVectorValue;
                 float fromFl = clip.fromFloatValue;
                 Color fromCol = clip.fromColorValue;
-                if (overrideStart)
+                bool overrideStart = clip.overrideStart;
+                bool from = clip.from;
+                bool relative = clip.relative;
+
+                if (isVirtual)
                 {
-                    EditorGUI.indentLevel++;
+                    // Virtual: 값 타입별 From → To. 이징해 매 프레임 콜백으로 전달(타깃 없음).
+                    switch (tweenType)
+                    {
+                        case Timeline.TweenType.VirtualInt:
+                            fromFl = EditorGUILayout.IntField("From", Mathf.RoundToInt(fromFl));
+                            fl = EditorGUILayout.IntField("To", Mathf.RoundToInt(fl));
+                            break;
+                        case Timeline.TweenType.VirtualVector3:
+                            fromVec = EditorGUILayout.Vector3Field("From", fromVec);
+                            vec = EditorGUILayout.Vector3Field("To", vec);
+                            break;
+                        case Timeline.TweenType.VirtualColor:
+                            fromCol = EditorGUILayout.ColorField("From", fromCol);
+                            col = EditorGUILayout.ColorField("To", col);
+                            break;
+                        default: // VirtualFloat
+                            fromFl = EditorGUILayout.FloatField("From", fromFl);
+                            fl = EditorGUILayout.FloatField("To", fl);
+                            break;
+                    }
+                }
+                else
+                {
                     using (new EditorGUILayout.HorizontalScope())
                     {
                         if (UsesVector3(tweenType))
-                            fromVec = EditorGUILayout.Vector3Field("Start", fromVec);
+                            vec = EditorGUILayout.Vector3Field("To", vec);
                         else if (UsesVector2(tweenType))
                         {
-                            Vector2 v2 = EditorGUILayout.Vector2Field("Start", new Vector2(fromVec.x, fromVec.y));
-                            fromVec = new Vector3(v2.x, v2.y, 0f);
+                            Vector2 v2 = EditorGUILayout.Vector2Field("To", new Vector2(vec.x, vec.y));
+                            vec = new Vector3(v2.x, v2.y, 0f);
                         }
                         else if (UsesColor(tweenType))
-                            fromCol = EditorGUILayout.ColorField("Start Color", fromCol);
+                            col = EditorGUILayout.ColorField("To Color", col);
                         else // float
-                            fromFl = EditorGUILayout.FloatField("Start", fromFl);
+                            fl = EditorGUILayout.FloatField("To", fl);
 
                         if (GUILayout.Button("Current", GUILayout.Width(60)))
                         {
-                            CaptureInto(clip, false);
-                            fromVec = clip.fromVectorValue; fromFl = clip.fromFloatValue; fromCol = clip.fromColorValue;
+                            CaptureInto(clip, true);
+                            // 캡처 결과가 아래 ChangeCheck 저장 시 stale 로컬로 덮이지 않도록 동기화
+                            vec = clip.vectorValue; fl = clip.floatValue; col = clip.colorValue;
                         }
                     }
-                    EditorGUI.indentLevel--;
+
+                    // ── 시작값 강제(Override Start Value) ──
+                    overrideStart = AndroidToggle("Override Start Value", clip.overrideStart);
+                    if (overrideStart)
+                    {
+                        EditorGUI.indentLevel++;
+                        using (new EditorGUILayout.HorizontalScope())
+                        {
+                            if (UsesVector3(tweenType))
+                                fromVec = EditorGUILayout.Vector3Field("Start", fromVec);
+                            else if (UsesVector2(tweenType))
+                            {
+                                Vector2 v2 = EditorGUILayout.Vector2Field("Start", new Vector2(fromVec.x, fromVec.y));
+                                fromVec = new Vector3(v2.x, v2.y, 0f);
+                            }
+                            else if (UsesColor(tweenType))
+                                fromCol = EditorGUILayout.ColorField("Start Color", fromCol);
+                            else // float
+                                fromFl = EditorGUILayout.FloatField("Start", fromFl);
+
+                            if (GUILayout.Button("Current", GUILayout.Width(60)))
+                            {
+                                CaptureInto(clip, false);
+                                fromVec = clip.fromVectorValue; fromFl = clip.fromFloatValue; fromCol = clip.fromColorValue;
+                            }
+                        }
+                        EditorGUI.indentLevel--;
+                    }
                 }
 
                 EditorGUILayout.Space(2);
@@ -125,8 +206,12 @@ namespace DoTweenUtility.Editor
                 {
                     ease = (Ease)EditorGUILayout.EnumPopup("Ease", clip.ease);
                 }
-                bool from = AndroidToggle("From (reverse)", clip.from);
-                bool relative = AndroidToggle("Relative", clip.relative);
+                // Virtual에는 From(reverse)/Relative가 의미 없으므로 숨긴다.
+                if (!isVirtual)
+                {
+                    from = AndroidToggle("From (reverse)", clip.from);
+                    relative = AndroidToggle("Relative", clip.relative);
+                }
 
                 bool snapping = clip.snapping;
                 if (SupportsSnapping(tweenType))
@@ -164,6 +249,29 @@ namespace DoTweenUtility.Editor
                     clip.loops = loops;
                     clip.loopType = loopType;
                     EditorUtility.SetDirty(_t);
+                }
+
+                // ── Virtual 콜백(On Virtual Update): 값 타입에 맞는 콜백 필드를 받는다 ──
+                if (isVirtual)
+                {
+                    string cbProp = tweenType switch
+                    {
+                        Timeline.TweenType.VirtualInt => "onVirtualUpdateInt",
+                        Timeline.TweenType.VirtualVector3 => "onVirtualUpdateVec3",
+                        Timeline.TweenType.VirtualColor => "onVirtualUpdateColor",
+                        _ => "onVirtualUpdate",
+                    };
+                    EditorGUILayout.Space(2);
+                    serializedObject.Update();
+                    SerializedProperty vClipsProp = serializedObject.FindProperty("clips");
+                    if (vClipsProp != null && _selected < vClipsProp.arraySize)
+                    {
+                        SerializedProperty cp = vClipsProp.GetArrayElementAtIndex(_selected);
+                        EditorGUILayout.PropertyField(
+                            cp.FindPropertyRelative(cbProp),
+                            new GUIContent("On Virtual Update", "Invoked every frame with the current eased value (From → To)"));
+                    }
+                    serializedObject.ApplyModifiedProperties();
                 }
 
                 // ── 클립별 이벤트 (UnityEvent는 SerializedProperty로 그려야 정상 UI) ──
@@ -204,7 +312,7 @@ namespace DoTweenUtility.Editor
 
             if (clip.target == null)
             {
-                EditorGUILayout.HelpBox("Assign a Target to choose a component and tween type.", MessageType.Info);
+                EditorGUILayout.HelpBox("Assign a Target to choose a component and tween type, or switch to Virtual Mode above.", MessageType.Info);
                 return;
             }
 

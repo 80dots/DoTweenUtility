@@ -354,7 +354,8 @@ namespace DoTweenUtility.Editor
             if (v < 30) return new Color(0.85f, 0.55f, 0.20f);   // Rotate (주황)
             if (v < 40) return new Color(0.30f, 0.70f, 0.35f);   // Scale (초록)
             if (v < 50) return new Color(0.25f, 0.70f, 0.75f);   // Rect (청록)
-            return new Color(0.70f, 0.35f, 0.75f);               // Color/Fade (자주)
+            if (v < 60) return new Color(0.70f, 0.35f, 0.75f);   // Color/Fade (자주)
+            return new Color(0.55f, 0.55f, 0.60f);               // Virtual (회색)
         }
     }
 }

@@ -71,13 +71,16 @@ namespace DoTweenUtility.Editor
             int idx = 0;
             foreach (var clip in _t.clips)
             {
-                if (clip == null || !clip.enabled || clip.target == null) { idx++; continue; }
+                if (clip == null || !clip.enabled) { idx++; continue; }
+                bool isVirtual = Timeline.IsVirtual(clip.tweenType);
+                if (!isVirtual && clip.target == null) { idx++; continue; }
 
                 string label = string.IsNullOrEmpty(clip.label) ? clip.tweenType.ToString() : clip.label;
                 sb.AppendLine();
                 sb.AppendLine($"    // Clip {idx}: {label} ({clip.tweenType})");
                 sb.AppendLine("    {");
-                sb.AppendLine($"        var go = GameObject.Find(\"{Esc(clip.target.name)}\");");
+                if (!isVirtual)
+                    sb.AppendLine($"        var go = GameObject.Find(\"{Esc(clip.target.name)}\");");
                 sb.AppendLine($"        Tweener t = {ClipCall(clip)};");
 
                 if (clip.useCurveEase && clip.easeCurve != null && clip.easeCurve.length > 0)
@@ -117,6 +120,11 @@ namespace DoTweenUtility.Editor
 
             switch (c.tweenType)
             {
+                // Virtual: 타깃 없음. 콜백(On Virtual Update)은 코드로 재현하지 않는다(빈 람다).
+                case Timeline.TweenType.VirtualFloat:   return $"DOVirtual.Float({F(c.fromFloatValue)}, {F(c.floatValue)}, {dS}, v => {{ }})";
+                case Timeline.TweenType.VirtualInt:     return $"DOVirtual.Int({Mathf.RoundToInt(c.fromFloatValue)}, {Mathf.RoundToInt(c.floatValue)}, {dS}, v => {{ }})";
+                case Timeline.TweenType.VirtualVector3: return $"DOVirtual.Vector3({V3(c.fromVectorValue)}, {V3(c.vectorValue)}, {dS}, v => {{ }})";
+                case Timeline.TweenType.VirtualColor:   return $"DOVirtual.Color({Col(c.fromColorValue)}, {Col(c.colorValue)}, {dS}, v => {{ }})";
                 case Timeline.TweenType.Move:       return $"{tr}.DOMove({V3(c.vectorValue)}, {dS}, {snap})";
                 case Timeline.TweenType.MoveX:      return $"{tr}.DOMoveX({F(c.floatValue)}, {dS}, {snap})";
                 case Timeline.TweenType.MoveY:      return $"{tr}.DOMoveY({F(c.floatValue)}, {dS}, {snap})";

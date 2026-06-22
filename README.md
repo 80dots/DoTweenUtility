@@ -19,6 +19,7 @@ When you are ready to move to code, the built-in **Code View** generates the equ
   - **CanvasGroup** — Fade
   - **Graphic** (Image / Text / TMP, etc.) — Color / Fade
   - **SpriteRenderer** — Color / Fade
+  - **Virtual** (no target) — `DOVirtual.Float` / `Int` / `Vector3` / `Color`: tween an eased value From → To and receive it each frame via a callback
 - **Rich per-clip options** — Start time & duration, target value (with a `Current` capture button), Ease (enum **or** AnimationCurve), `From`, `Relative`, `Snapping`, `RotateMode`, **Override Start Value**, per-clip loops & loop type, and per-clip UnityEvents (`onStart` / `onUpdate` / `onFinish`).
 - **Event markers** — Place named markers at specific times on the track. During playback, `onMarker(string name)` fires when the playhead reaches each marker, passing the marker's name. Drag marker flags on the ruler to move them; edit name/time in the **Event Markers** section.
 - **Timeline settings** — Auto-play (`Manual` / `OnAwake` / `OnStart` / `OnEnable`), `Ignore Time Scale`, `Kill Conflicting Tweens On Play`, timeline-wide loops & loop type, and timeline-wide UnityEvents.
@@ -87,6 +88,7 @@ When you are ready to move to code, the built-in **Code View** generates the equ
   - **CanvasGroup** — Fade
   - **Graphic** (Image / Text / TMP 등) — Color / Fade
   - **SpriteRenderer** — Color / Fade
+  - **Virtual** (타깃 없음) — `DOVirtual.Float` / `Int` / `Vector3` / `Color`: From → To 의 이징된 값을 트윈하여 매 프레임 콜백으로 전달
 - **풍부한 클립 옵션** — 시작 시간·길이, 목표값(`Current` 캡처 버튼 포함), 이징(enum **또는** AnimationCurve), `From`, `Relative`, `Snapping`, `RotateMode`, **Override Start Value**, 클립별 루프·루프 타입, 클립별 UnityEvent(`onStart` / `onUpdate` / `onFinish`).
 - **이벤트 마커** — 트랙의 특정 시각에 이름 있는 마커를 놓습니다. 재생 중 플레이헤드가 마커에 도달하면 `onMarker(string name)`이 마커 이름을 인자로 호출됩니다. 룰러의 마커 플래그를 드래그해 위치를 옮기고, **Markers** 섹션에서 이름/시각을 편집합니다.
 - **타임라인 설정** — 자동 재생(`Manual` / `OnAwake` / `OnStart` / `OnEnable`), `Ignore Time Scale`, `Kill Conflicting Tweens On Play`, 타임라인 전체 루프·루프 타입, 타임라인 전체 UnityEvent.
@@ -140,6 +142,11 @@ Each entry lists changes in **English** and **한국어**. Unreleased items roll
 각 항목은 **영어**와 **한국어**로 변경 사항을 적습니다. Unreleased 항목은 다음 릴리스에서 버전으로 묶입니다.
 
 ## Unreleased
+
+## v0.5.0
+
+- **EN:** Add a **Virtual** clip type backed by `DOVirtual` — a tween with **no target** that interpolates an eased value from **From → To** and reports it every frame through an **On Virtual Update** callback you wire in the Inspector. Supports four value types via a **Value Type** dropdown: **Float / Int / Vector3 / Color** (`UnityEvent<float/int/Vector3/Color>`). Each clip has an **Object Mode / Virtual Mode** toggle at the top of its panel; in Virtual Mode the target/component pickers are hidden and you just pick the value type, set From/To, and pick an Ease (DOTween eases the value). Note: like markers, the callback runs during editor preview too (the value is applied via the tween setter).
+- **KO:** `DOVirtual` 기반 **Virtual** 클립 타입 추가 — **타깃이 없는** 트윈으로, **From → To** 의 이징된 값을 보간해 매 프레임 **On Virtual Update** 콜백으로 전달합니다(Inspector에서 연결). **Value Type** 드롭다운으로 네 가지 값 타입 지원: **Float / Int / Vector3 / Color**(`UnityEvent<float/int/Vector3/Color>`). 각 클립 패널 상단에 **Object Mode / Virtual Mode** 토글이 있고, Virtual Mode에서는 타깃/컴포넌트 선택이 숨겨지고 값 타입·From/To·Ease만 지정하면 DOTween이 값에 이징을 적용합니다. 참고: 콜백은 에디터 프리뷰에서도 실행됩니다(값이 트윈 setter로 적용되기 때문).
 
 ## v0.4.0
 
